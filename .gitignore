@@ -1,0 +1,30 @@
+# Node.js specific ignores
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+.env # Sensitive environment variables
+build/ # React build output
+dist/ # Another common build output folder
+*.log # General log files
+
+# Python/Flask specific ignores
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/ # Python virtual environment
+instance/ # Flask instance folder for configuration and database files
+.flaskenv # Flask environment variables
+
+# IDE and editor specific ignores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Operating System specific ignores
+.DS_Store
+Thumbs.db
+
+# Other common ignores
+temp/
+tmp/

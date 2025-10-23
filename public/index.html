@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- <link rel="icon" href="%PUBLIC_URL%/favicon.ico" /> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Web site created using create-react-app"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <!--
+      manifest.json provides metadata used when your web app is installed on a
+      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
+    -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <title>PersonalizeLearn</title>
+    <!-- Add Google AI Search Widget script -->
+    <script async src="https://cloud.google.com/ai/gen-app-builder/client?hl=en_US"></script>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    
+    <!-- Search widget element -->
+    <gen-search-widget
+      configId="5cf4338d-d548-43a0-9d0d-1b0c112b1404"
+      triggerId="searchWidgetTrigger"
+      style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10000000; display: none;"
+    >
+    </gen-search-widget>
+
+    <div id="root"></div>
+
+    <script>
+      // Wait for the widget script to load
+      window.addEventListener('load', function() {
+        // Check if the widget is available
+        if (window.customElements && window.customElements.get('gen-search-widget')) {
+          const widget = document.querySelector('gen-search-widget');
+          const trigger = document.getElementById('searchWidgetTrigger');
+          
+          if (widget && trigger) {
+            // Show widget when trigger is clicked
+            trigger.addEventListener('click', function() {
+              widget.style.display = 'block';
+              // Dispatch a custom event to open the widget
+              widget.dispatchEvent(new CustomEvent('open'));
+            });
+
+            // Handle widget open event
+            widget.addEventListener('open', function() {
+              console.log('Search widget opened');
+            });
+
+            // Handle widget close event
+            widget.addEventListener('close', function() {
+              widget.style.display = 'none';
+            });
+
+            // Handle widget result click event
+            widget.addEventListener('resultClick', function(event) {
+              console.log('Result clicked:', event.detail);
+              widget.style.display = 'none';
+            });
+          }
+        } else {
+          console.error('Google AI Search Widget not loaded');
+        }
+      });
+    </script>
+
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+  </body>
+</html>
