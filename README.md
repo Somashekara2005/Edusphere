@@ -438,3 +438,117 @@ The Flask backend provides the following endpoints:
 <p align="center">
   <b>Edusphere – Learn Smarter. Learn Your Way. 🎓</b>
 </p>
+
+# ESP32 Capacitive Soil Moisture Sensor
+
+## Project Description
+This project uses an ESP32 microcontroller and a Capacitive Soil Moisture Sensor to measure soil moisture levels. The sensor provides analog readings that are converted into moisture percentages to identify whether the soil is dry, moderate, or wet.
+
+## Components Required
+- ESP32 Development Board
+- Capacitive Soil Moisture Sensor
+- Jumper Wires
+- USB Cable
+- Arduino IDE
+
+## Circuit Connections
+
+| Soil Moisture Sensor | ESP32 |
+|---|---|
+| VCC | 3.3V |
+| GND | GND |
+| AOUT | GPIO 34 |
+
+## Arduino Code
+
+```cpp
+#define SOIL_SENSOR_PIN 34
+
+int moistureValue = 0;
+int moisturePercentage = 0;
+
+int dryValue = 3000;
+int wetValue = 1200;
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println("ESP32 Soil Moisture Monitoring");
+}
+
+void loop() {
+  moistureValue = analogRead(SOIL_SENSOR_PIN);
+
+  moisturePercentage = map(
+    moistureValue, dryValue, wetValue, 0, 100
+  );
+
+  moisturePercentage = constrain(
+    moisturePercentage, 0, 100
+  );
+
+  Serial.print("Sensor Value: ");
+  Serial.println(moistureValue);
+
+  Serial.print("Soil Moisture: ");
+  Serial.print(moisturePercentage);
+  Serial.println("%");
+
+  if (moisturePercentage < 30) {
+    Serial.println("Soil Condition: DRY");
+  }
+  else if (moisturePercentage < 60) {
+    Serial.println("Soil Condition: MODERATE");
+  }
+  else {
+    Serial.println("Soil Condition: WET");
+  }
+
+  Serial.println("----------------------");
+  delay(2000);
+}
+```
+
+## Working Principle
+1. The capacitive soil moisture sensor detects the moisture content in the soil.
+2. It generates an analog voltage based on soil moisture.
+3. The ESP32 reads the analog signal using its ADC pin (GPIO 34).
+4. The analog value is converted into a percentage.
+5. The soil condition is displayed on the Serial Monitor.
+
+## Moisture Classification
+
+| Moisture Percentage | Soil Condition |
+|---|---|
+| 0–29% | Dry |
+| 30–59% | Moderate |
+| 60–100% | Wet |
+
+## Calibration
+The sensor needs calibration for accurate readings.
+
+- `dryValue`: Analog reading when the sensor is in dry soil.
+- `wetValue`: Analog reading when the sensor is in moist soil.
+
+Update these values according to your sensor readings.
+
+## Applications
+- Smart Agriculture
+- Automatic Irrigation Systems
+- Plant Monitoring
+- Smart Gardening
+- IoT-Based Agriculture Projects
+
+## Technologies Used
+- ESP32
+- Arduino IDE
+- Embedded C/C++
+- Capacitive Soil Moisture Sensor
+
+## Future Enhancements
+- Integration with a water pump for automatic irrigation.
+- Real-time monitoring using IoT.
+- Display moisture levels on an LCD or web dashboard.
+- Cloud-based agricultural monitoring.
+
+## Author
+Developed as an ESP32-based soil moisture monitoring project.
