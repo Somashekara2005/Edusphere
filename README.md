@@ -439,54 +439,202 @@ The Flask backend provides the following endpoints:
   <b>Edusphere – Learn Smarter. Learn Your Way. 🎓</b>
 </p>
 
-# ESP32 Capacitive Soil Moisture Sensor
+# ESP32 Smart Agriculture System 🌱
 
-## Project Description
-This project uses an ESP32 microcontroller and a Capacitive Soil Moisture Sensor to measure soil moisture levels. The sensor provides analog readings that are converted into moisture percentages to identify whether the soil is dry, moderate, or wet.
+## Project Overview
 
-## Components Required
-- ESP32 Development Board
-- Capacitive Soil Moisture Sensor
-- Jumper Wires
-- USB Cable
+The ESP32 Smart Agriculture System is an automated irrigation and environmental monitoring project. It uses an ESP32 microcontroller, a capacitive soil moisture sensor, and a DHT11 temperature and humidity sensor to monitor agricultural conditions.
+
+The system automatically controls a water pump through a relay based on soil moisture levels, helping reduce unnecessary water usage.
+
+## Features
+
+- Real-time soil moisture monitoring.
+- Temperature measurement using DHT11.
+- Humidity monitoring.
+- Automatic water pump control.
+- Relay-based irrigation system.
+- Soil condition classification (Dry, Moderate, Wet).
+- Pump safety timeout of 30 seconds.
+- Sensor readings displayed through Serial Monitor.
+
+## Hardware Requirements
+
+1. ESP32 Development Board
+2. Capacitive Soil Moisture Sensor
+3. DHT11 Temperature and Humidity Sensor
+4. Relay Module
+5. DC Water Pump
+6. External Power Supply for Water Pump
+7. Jumper Wires
+8. Breadboard
+
+## Pin Connections
+
+| Component | Sensor Pin | ESP32 Pin |
+|---|---|---|
+| Soil Moisture Sensor | VCC | 3.3V |
+| Soil Moisture Sensor | GND | GND |
+| Soil Moisture Sensor | AOUT | GPIO 34 |
+| DHT11 | VCC | 3.3V |
+| DHT11 | GND | GND |
+| DHT11 | DATA | GPIO 4 |
+| Relay Module | IN | GPIO 26 |
+
+**Note:** Connect relay power according to the module specifications. Use a separate suitable power supply for the water pump.
+
+## Software Requirements
+
 - Arduino IDE
+- ESP32 Board Package
+- DHT Sensor Library by Adafruit
+- Adafruit Unified Sensor Library
 
-## Circuit Connections
+## Installation and Setup
 
-| Soil Moisture Sensor | ESP32 |
-|---|---|
-| VCC | 3.3V |
-| GND | GND |
-| AOUT | GPIO 34 |
+1. Install Arduino IDE.
+2. Install the ESP32 board package.
+3. Install the required DHT libraries using Library Manager.
+4. Connect the sensors and relay to the ESP32.
+5. Open the Arduino IDE.
+6. Copy the source code into a new sketch.
+7. Select the ESP32 board and correct COM port.
+8. Upload the program.
+9. Open Serial Monitor and set baud rate to 115200.
 
-## Arduino Code
+## Source Code
+
+Save the following program as `smart_agriculture.ino`.
 
 ```cpp
+#include "DHT.h"
+
+// PIN CONFIGURATION
 #define SOIL_SENSOR_PIN 34
+#define DHTPIN 4
+#define DHTTYPE DHT11
+#define RELAY_PIN 26
 
-int moistureValue = 0;
-int moisturePercentage = 0;
+// SENSOR OBJECT
+DHT dht(DHTPIN, DHTTYPE);
 
+// SOIL CALIBRATION
 int dryValue = 3000;
 int wetValue = 1200;
 
+// IRRIGATION SETTINGS
+int moistureThreshold = 30;
+
+// ACTIVE LOW RELAY
+#define PUMP_ON LOW
+#define PUMP_OFF HIGH
+
+// PUMP SAFETY TIMEOUT
+const unsigned long MAX_PUMP_TIME = 30000;
+
+bool pumpStatus = false;
+unsigned long pumpStartTime = 0;
+
+// VARIABLES
+int moistureValue;
+int moisturePercentage;
+
+float temperature;
+float humidity;
+
+// SETUP
 void setup() {
+
   Serial.begin(115200);
-  Serial.println("ESP32 Soil Moisture Monitoring");
+
+  pinMode(RELAY_PIN, OUTPUT);
+
+  digitalWrite(RELAY_PIN, PUMP_OFF);
+
+  dht.begin();
+
+  Serial.println();
+  Serial.println("================================");
+  Serial.println(" ESP32 SMART AGRICULTURE SYSTEM ");
+  Serial.println("================================");
+
+  Serial.println("System Initialized Successfully");
+
 }
 
+// PUMP CONTROL
+void controlPump() {
+
+  if (moisturePercentage < moistureThreshold) {
+
+    if (!pumpStatus) {
+
+      pumpStatus = true;
+      pumpStartTime = millis();
+
+      digitalWrite(RELAY_PIN, PUMP_ON);
+
+      Serial.println("Pump turned ON");
+
+    }
+
+    if (millis() - pumpStartTime >= MAX_PUMP_TIME) {
+
+      digitalWrite(RELAY_PIN, PUMP_OFF);
+
+      pumpStatus = false;
+
+      Serial.println("Pump stopped: Maximum runtime reached");
+
+    }
+
+  }
+
+  else {
+
+    if (pumpStatus) {
+
+      digitalWrite(RELAY_PIN, PUMP_OFF);
+
+      pumpStatus = false;
+
+      Serial.println("Pump turned OFF");
+
+    }
+
+  }
+
+}
+
+// MAIN LOOP
 void loop() {
+
+  // READ SOIL MOISTURE
   moistureValue = analogRead(SOIL_SENSOR_PIN);
 
   moisturePercentage = map(
-    moistureValue, dryValue, wetValue, 0, 100
+    moistureValue,
+    dryValue,
+    wetValue,
+    0,
+    100
   );
 
   moisturePercentage = constrain(
-    moisturePercentage, 0, 100
+    moisturePercentage,
+    0,
+    100
   );
 
-  Serial.print("Sensor Value: ");
+  // READ TEMPERATURE AND HUMIDITY
+  temperature = dht.readTemperature();
+
+  humidity = dht.readHumidity();
+
+  // DISPLAY SOIL DATA
+  Serial.println("\n========== SOIL DATA ==========");
+
+  Serial.print("Raw Sensor Value: ");
   Serial.println(moistureValue);
 
   Serial.print("Soil Moisture: ");
@@ -494,28 +642,81 @@ void loop() {
   Serial.println("%");
 
   if (moisturePercentage < 30) {
+
     Serial.println("Soil Condition: DRY");
-  }
-  else if (moisturePercentage < 60) {
-    Serial.println("Soil Condition: MODERATE");
-  }
-  else {
-    Serial.println("Soil Condition: WET");
+
   }
 
-  Serial.println("----------------------");
+  else if (moisturePercentage < 60) {
+
+    Serial.println("Soil Condition: MODERATE");
+
+  }
+
+  else {
+
+    Serial.println("Soil Condition: WET");
+
+  }
+
+  // DISPLAY ENVIRONMENT DATA
+  Serial.println("\n======= ENVIRONMENT DATA =======");
+
+  if (isnan(temperature) || isnan(humidity)) {
+
+    Serial.println("DHT11 Sensor Error");
+
+  }
+
+  else {
+
+    Serial.print("Temperature: ");
+    Serial.print(temperature);
+    Serial.println(" C");
+
+    Serial.print("Humidity: ");
+    Serial.print(humidity);
+    Serial.println(" %");
+
+  }
+
+  // AUTOMATIC IRRIGATION
+  Serial.println("\n======= IRRIGATION DATA =======");
+
+  controlPump();
+
+  Serial.print("Water Pump: ");
+
+  if (pumpStatus) {
+
+    Serial.println("ON");
+
+  }
+
+  else {
+
+    Serial.println("OFF");
+
+  }
+
+  Serial.println("================================");
+
   delay(2000);
+
 }
 ```
 
 ## Working Principle
-1. The capacitive soil moisture sensor detects the moisture content in the soil.
-2. It generates an analog voltage based on soil moisture.
-3. The ESP32 reads the analog signal using its ADC pin (GPIO 34).
-4. The analog value is converted into a percentage.
-5. The soil condition is displayed on the Serial Monitor.
 
-## Moisture Classification
+1. The capacitive soil moisture sensor measures the moisture level in the soil.
+2. The DHT11 sensor measures temperature and humidity.
+3. ESP32 reads and processes the sensor data.
+4. Soil moisture is converted into a percentage.
+5. If soil moisture falls below 30%, the relay activates the water pump.
+6. When soil moisture reaches 30% or above, the pump switches OFF.
+7. A maximum continuous runtime of 30 seconds prevents the pump from running indefinitely.
+
+## Soil Moisture Classification
 
 | Moisture Percentage | Soil Condition |
 |---|---|
@@ -523,32 +724,55 @@ void loop() {
 | 30–59% | Moderate |
 | 60–100% | Wet |
 
+## Sample Serial Monitor Output
+
+```text
+================================
+ ESP32 SMART AGRICULTURE SYSTEM
+================================
+
+========== SOIL DATA ==========
+Raw Sensor Value: 2800
+Soil Moisture: 11%
+Soil Condition: DRY
+
+======= ENVIRONMENT DATA =======
+Temperature: 28.00 C
+Humidity: 65.00 %
+
+======= IRRIGATION DATA =======
+Pump turned ON
+Water Pump: ON
+
+================================
+```
+
+*Note: The readings above are illustrative examples.*
+
 ## Calibration
-The sensor needs calibration for accurate readings.
 
-- `dryValue`: Analog reading when the sensor is in dry soil.
-- `wetValue`: Analog reading when the sensor is in moist soil.
+For accurate moisture readings, calibrate the sensor according to the actual soil conditions.
 
-Update these values according to your sensor readings.
+```cpp
+int dryValue = 3000;
+int wetValue = 1200;
+```
+
+- `dryValue`: Sensor reading in dry soil.
+- `wetValue`: Sensor reading in moist soil.
 
 ## Applications
-- Smart Agriculture
-- Automatic Irrigation Systems
-- Plant Monitoring
-- Smart Gardening
-- IoT-Based Agriculture Projects
 
-## Technologies Used
-- ESP32
-- Arduino IDE
-- Embedded C/C++
-- Capacitive Soil Moisture Sensor
+- Smart Agriculture
+- Automated Irrigation
+- Smart Farming
+- Greenhouse Monitoring
+- IoT-Based Plant Monitoring
+- Water Management Systems
 
 ## Future Enhancements
-- Integration with a water pump for automatic irrigation.
-- Real-time monitoring using IoT.
-- Display moisture levels on an LCD or web dashboard.
-- Cloud-based agricultural monitoring.
 
-## Author
-Developed as an ESP32-based soil moisture monitoring project.
+- IoT-based real-time monitoring.
+- Mobile application integration.
+- Cloud data storage and visualization.
+- Automatic
