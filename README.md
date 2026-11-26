@@ -507,113 +507,49 @@ The system automatically controls a water pump through a relay based on soil moi
 Save the following program as `smart_agriculture.ino`.
 
 ```cpp
-#include "DHT.h"
 
-// PIN CONFIGURATION
-#define SOIL_SENSOR_PIN 34
-#define DHTPIN 4
-#define DHTTYPE DHT11
-#define RELAY_PIN 26
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
-// SENSOR OBJECT
-DHT dht(DHTPIN, DHTTYPE);
+// Pin definitions
+#define SOIL_PIN 34
+#define TEMP_PIN 4
 
-// SOIL CALIBRATION
+// Temperature sensor setup
+OneWire oneWire(TEMP_PIN);
+DallasTemperature sensors(&oneWire);
+
+// Soil moisture calibration
 int dryValue = 3000;
 int wetValue = 1200;
 
-// IRRIGATION SETTINGS
-int moistureThreshold = 30;
-
-// ACTIVE LOW RELAY
-#define PUMP_ON LOW
-#define PUMP_OFF HIGH
-
-// PUMP SAFETY TIMEOUT
-const unsigned long MAX_PUMP_TIME = 30000;
-
-bool pumpStatus = false;
-unsigned long pumpStartTime = 0;
-
-// VARIABLES
-int moistureValue;
+// Variables
+int soilValue;
 int moisturePercentage;
-
 float temperature;
-float humidity;
 
-// SETUP
 void setup() {
 
   Serial.begin(115200);
 
-  pinMode(RELAY_PIN, OUTPUT);
+  // Start temperature sensor
+  sensors.begin();
 
-  digitalWrite(RELAY_PIN, PUMP_OFF);
+  // ESP32 ADC resolution
+  analogReadResolution(12);
 
-  dht.begin();
-
-  Serial.println();
-  Serial.println("================================");
-  Serial.println(" ESP32 SMART AGRICULTURE SYSTEM ");
-  Serial.println("================================");
-
-  Serial.println("System Initialized Successfully");
-
+  Serial.println("Smart Agriculture Monitoring System");
+  Serial.println("-----------------------------------");
 }
 
-// PUMP CONTROL
-void controlPump() {
-
-  if (moisturePercentage < moistureThreshold) {
-
-    if (!pumpStatus) {
-
-      pumpStatus = true;
-      pumpStartTime = millis();
-
-      digitalWrite(RELAY_PIN, PUMP_ON);
-
-      Serial.println("Pump turned ON");
-
-    }
-
-    if (millis() - pumpStartTime >= MAX_PUMP_TIME) {
-
-      digitalWrite(RELAY_PIN, PUMP_OFF);
-
-      pumpStatus = false;
-
-      Serial.println("Pump stopped: Maximum runtime reached");
-
-    }
-
-  }
-
-  else {
-
-    if (pumpStatus) {
-
-      digitalWrite(RELAY_PIN, PUMP_OFF);
-
-      pumpStatus = false;
-
-      Serial.println("Pump turned OFF");
-
-    }
-
-  }
-
-}
-
-// MAIN LOOP
 void loop() {
 
-  // READ SOIL MOISTURE
-  moistureValue = analogRead(SOIL_SENSOR_PIN);
+  // Read soil moisture sensor
+  soilValue = analogRead(SOIL_PIN);
 
+  // Convert analog reading into percentage
   moisturePercentage = map(
-    moistureValue,
+    soilValue,
     dryValue,
     wetValue,
     0,
@@ -621,90 +557,56 @@ void loop() {
   );
 
   moisturePercentage = constrain(
-    moisturePercentage,
-    0,
-    100
+    moisturePercentage, 0, 100
   );
 
-  // READ TEMPERATURE AND HUMIDITY
-  temperature = dht.readTemperature();
+  // Read temperature sensor
+  sensors.requestTemperatures();
 
-  humidity = dht.readHumidity();
+  temperature = sensors.getTempCByIndex(0);
 
-  // DISPLAY SOIL DATA
-  Serial.println("\n========== SOIL DATA ==========");
-
-  Serial.print("Raw Sensor Value: ");
-  Serial.println(moistureValue);
+  // Display soil moisture
+  Serial.print("Soil Sensor Value: ");
+  Serial.println(soilValue);
 
   Serial.print("Soil Moisture: ");
   Serial.print(moisturePercentage);
   Serial.println("%");
 
+  // Display temperature
+  if (temperature == DEVICE_DISCONNECTED_C) {
+
+    Serial.println("Temperature Sensor: Not Connected");
+
+  } else {
+
+    Serial.print("Temperature: ");
+    Serial.print(temperature);
+    Serial.println(" C");
+  }
+
+  // Soil condition
   if (moisturePercentage < 30) {
 
     Serial.println("Soil Condition: DRY");
 
   }
-
   else if (moisturePercentage < 60) {
 
     Serial.println("Soil Condition: MODERATE");
 
   }
-
   else {
 
     Serial.println("Soil Condition: WET");
 
   }
 
-  // DISPLAY ENVIRONMENT DATA
-  Serial.println("\n======= ENVIRONMENT DATA =======");
-
-  if (isnan(temperature) || isnan(humidity)) {
-
-    Serial.println("DHT11 Sensor Error");
-
-  }
-
-  else {
-
-    Serial.print("Temperature: ");
-    Serial.print(temperature);
-    Serial.println(" C");
-
-    Serial.print("Humidity: ");
-    Serial.print(humidity);
-    Serial.println(" %");
-
-  }
-
-  // AUTOMATIC IRRIGATION
-  Serial.println("\n======= IRRIGATION DATA =======");
-
-  controlPump();
-
-  Serial.print("Water Pump: ");
-
-  if (pumpStatus) {
-
-    Serial.println("ON");
-
-  }
-
-  else {
-
-    Serial.println("OFF");
-
-  }
-
-  Serial.println("================================");
+  Serial.println("-----------------------------------");
 
   delay(2000);
-
 }
-```
+
 
 ## Working Principle
 
